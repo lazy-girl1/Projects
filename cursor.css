@@ -1,0 +1,34 @@
+ body {
+    margin: 0;
+    height: 100vh;
+    background: #222;
+    cursor: none;
+    overflow: hidden;
+  }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999;
+    font-size: 40px;
+    color: #fff;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 5px #ffd700);
+  }
+
+  /* Sparkle particles */
+  .sparkle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99998;
+    line-height: 1;
+    color: #ffed67;
+    display: inline-block;
+    animation: fadeOut 1.5s forwards;
+  }
+
+  @keyframes fadeOut {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(0, -20px) scale(0.2); }
+  }
