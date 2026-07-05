@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift & Pay Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B231E;
+    --bg:#EEF0E9;
+    --panel:#FFFFFF;
+    --green:#134D2B;
+    --green-dark:#0D3A20;
+    --amber:#E5A238;
+    --amber-dark:#B87A1E;
+    --line:#DAE0D3;
+    --muted:#5C665D;
+    --red:#B3402C;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.03em;margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  /* Header */
+  header{background:var(--green);color:#fff;padding:0;}
+  .stripe{height:8px;width:100%;background:repeating-linear-gradient(135deg,var(--amber) 0 18px,var(--green-dark) 18px 36px);}
+  .header-inner{max-width:1080px;margin:0 auto;padding:22px 20px 26px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;}
+  header h1{font-size:26px;font-weight:700;}
+  header p{margin:4px 0 0;color:#CFE0D4;font-size:13px;}
+  .badge{background:var(--amber);color:var(--green-dark);font-family:'Oswald',sans-serif;font-weight:600;font-size:12px;letter-spacing:.06em;padding:5px 10px;border-radius:4px;text-transform:uppercase;}
+
+  main{max-width:1080px;margin:0 auto;padding:22px 20px 60px;}
+
+  /* Stat strip */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;}
+  .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--amber);}
+  .stat .label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;}
+  .stat .value{font-size:24px;font-weight:600;margin-top:4px;}
+  .stat.net::before{background:var(--green);}
+  select#periodSelect{font-family:'Inter';font-size:12px;background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 6px;color:var(--ink);}
+
+  /* Panels */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:20px;overflow:hidden;}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;}
+  .panel-head h2{font-size:16px;color:var(--green-dark);}
+  .panel-head .chev{transition:transform .15s;color:var(--muted);}
+  .panel.collapsed .panel-body{display:none;}
+  .panel.collapsed .chev{transform:rotate(-90deg);}
+  .panel-body{padding:18px;}
+
+  /* Form */
+  .form-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;align-items:end;}
+  .form-grid .full{grid-column:1/-1;}
+  label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px;}
+  input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-family:'Inter';font-size:14px;background:#FCFCFA;color:var(--ink);}
+  input:focus,select:focus{outline:2px solid var(--green);outline-offset:1px;}
+  button{font-family:'Inter';font-weight:600;font-size:13px;border:none;border-radius:6px;padding:10px 16px;cursor:pointer;}
+  .btn-primary{background:var(--green);color:#fff;}
+  .btn-primary:hover{background:var(--green-dark);}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted);}
+  .btn-ghost:hover{border-color:var(--red);color:var(--red);}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:6px;}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tr.today{background:#FBF3E2;}
+  .type-pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:#E6EEE7;color:var(--green-dark);white-space:nowrap;}
+  .del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;}
+  .del-btn:hover{color:var(--red);}
+  .empty-row td{color:var(--muted);font-style:italic;text-align:center;padding:24px;}
+  .table-scroll{overflow-x:auto;}
+
+  /* Rate settings */
+  .rate-grid{display:grid;grid-template-columns:1fr 90px 110px;gap:10px 14px;align-items:center;}
+  .rate-grid .rhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  .rate-grid .rname{font-size:13.5px;padding:6px 0;}
+  .rate-grid input{padding:6px 8px;font-size:13px;}
+  .rate-grid .rrate{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--green-dark);text-align:right;padding-right:4px;}
+
+  /* Breakdown */
+  .breakdown-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .breakdown-row:last-child{border-bottom:none;}
+  .breakdown-row.total{font-weight:700;color:var(--green-dark);border-top:2px solid var(--line);padding-top:10px;}
+  .breakdown-row .amt{font-family:'IBM Plex Mono',monospace;}
+  .net-line{display:flex;justify-content:space-between;align-items:center;background:#F1F6F2;border:1px solid #CFE0D4;border-radius:8px;padding:12px 14px;margin-top:12px;}
+  .net-line .amt{font-size:19px;font-weight:700;color:var(--green-dark);}
+  .tax-input-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;}
+  .tax-input-row input{width:110px;text-align:right;}
+
+  footer{max-width:1080px;margin:0 auto;padding:0 20px 40px;font-size:11.5px;color:var(--muted);}
+
+  @media(max-width:760px){
+    .stats{grid-template-columns:1fr 1fr;}
+    .form-grid{grid-template-columns:repeat(2,1fr);}
+    .rate-grid{grid-template-columns:1fr 70px 90px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>Shift &amp; Pay Tracker</h1>
+      <p>Casual warehouse hours, penalty rates &amp; fortnightly pay — EBA Expert Adult Casual</p>
+    </div>
+    <span class="badge">Fortnight starting 08/06/2026 pattern</span>
+  </div>
+  <div class="stripe"></div>
+</header>
+
+<main>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Hours this fortnight</div><div class="value mono" id="statHours">0.0</div></div>
+    <div class="stat"><div class="label">Gross pay</div><div class="value mono" id="statGross">$0.00</div></div>
+    <div class="stat net"><div class="label">Net pay (est.)</div><div class="value mono" id="statNet">$0.00</div></div>
+    <div class="stat"><div class="label">Super (SGC)</div><div class="value mono" id="statSuper">$0.00</div></div>
+  </div>
+
+  <!-- Add shift -->
+  <div class="panel" id="panelAdd">
+    <div class="panel-head" onclick="togglePanel('panelAdd')"><h2>Log a shift</h2><span class="chev">▾</span></div>
+    <div class="panel-body">
+      <div class="form-grid">
+        <div><label for="fDate">Date</label><input type="date" id="fDate"></div>
+        <div><label for="fStart">Start</label><input type="time" id="fStart" value="07:00"></div>
+        <div><label for="fEnd">End</label><input type="time" id="fEnd" value="15:30"></div>
+        <div><label for="fBreak">Break (min)</label><input type="number" id="fBreak" value="0" min="0" step="5"></div>
+        <div style="grid-column:span 2;"><label for="fType">Shift type</label>
+          <select id="fType"></select>
+        </div>
+        <div class="full"><label for="fNote">Note (optional)</label><input type="text" id="fNote" placeholder="e.g. covering Newstead Warehouse"></div>
+        <div class="full" style="display:flex;gap:10px;">
+          <button class="btn-primary" onclick="addShift()">Add shift</button>
+          <span class="hint" id="livePreview" style="align-self:center;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shift log -->
+  <div class="panel" id="panelLog">
+    <div class="panel-head" onclick="togglePanel('panelLog')"><h2>Shift log</h2><span class="chev">▾</span></div>
+    <div class="panel-body">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Day</th><th>Time</th><th>Hrs</th><th>Type</th><th>Rate</th><th>Pay</th><th></th>
+          </tr></thead>
+          <tbody id="shiftTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fortnight breakdown -->
+  <div class="panel" id="panelBreakdown">
+    <div class="panel-head" onclick="togglePanel('panelBreakdown')"><h2>Fortnight breakdown</h2><span class="chev">▾</span></div>
+    <div class="panel-body">
+      <label for="periodSelect" style="margin-bottom:8px;">Pay period</label>
+      <select id="periodSelect" onchange="renderBreakdown()" style="margin-bottom:14px;max-width:280px;"></select>
+      <div id="breakdownList"></div>
+      <div class="tax-input-row">
+        <span>Tax withheld <span class="hint">(enter from payslip / ATO estimate)</span></span>
+        <input type="number" id="taxInput" step="0.01" value="0" onchange="saveTaxAndRender()">
+      </div>
+      <div class="net-line">
+        <span>Net pay</span>
+        <span class="amt mono" id="netAmt">$0.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rate settings -->
+  <div class="panel collapsed" id="panelRates">
+    <div class="panel-head" onclick="togglePanel('panelRates')"><h2>Rate settings</h2><span class="chev">▾</span></div>
+    <div class="panel-body">
+      <label for="baseRate">Base hourly rate</label>
+      <input type="number" id="baseRate" step="0.01" style="max-width:140px;margin-bottom:16px;" onchange="onBaseRateChange()">
+      <div class="rate-grid" id="rateGrid"></div>
+      <p class="hint">Multipliers are editable — adjust if your EBA rates differ. Rates recalculate automatically from the base rate.</p>
+      <label for="superRate" style="margin-top:14px;">Super rate (SGC)</label>
+      <input type="number" id="superRate" step="0.001" style="max-width:140px;" onchange="onSuperRateChange()">
+    </div>
+  </div>
+
+  <p class="hint" id="saveStatus">Loading your data…</p>
+</main>
+
+<footer>
+  Rates inferred from a Bunnings Group EBA Expert Adult Casual payslip (pay run 002361). Confirm exact penalty definitions and public holiday / overtime rates with your employer — treat this as a personal estimate, not an official pay record. Your entries are saved privately to your account and only visible to you.
+</footer>
+
+<script>
+const ANCHOR = new Date(Date.UTC(2026,5,8)); // 08/06/2026 Monday
+const PERIOD_DAYS = 14;
+
+const SHIFT_TYPES = [
+  {key:'ordinary', label:'Weekday Ordinary (7am–6pm, Mon–Fri)', mult:1.2252},
+  {key:'earlyLateA', label:'Weekday Early/Late — Type A', mult:1.525},
+  {key:'earlyLateB', label:'Weekday Early/Late — Type B', mult:1.375},
+  {key:'saturday', label:'Saturday', mult:1.4},
+  {key:'sunday', label:'Sunday', mult:1.625},
+  {key:'sundayOT', label:'Sunday Late / Overtime', mult:2.1},
+  {key:'publicHoliday', label:'Public Holiday', mult:2.5},
+  {key:'overtime', label:'Overtime (weekday, after ordinary hrs)', mult:1.75},
+];
+
+let settings = { baseRate: 29.10, superRate: 0.12, multipliers: {}, taxByPeriod: {} };
+let shifts = [];
+
+function dstr(d){ return d.toISOString().slice(0,10); }
+function fmtMoney(n){ return '$'+(Math.round(n*100)/100).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtHrs(n){ return (Math.round(n*100)/100).toFixed(2); }
+
+function periodStartFor(dateObj){
+  const diffDays = Math.floor((dateObj - ANCHOR)/86400000);
+  const periodIndex = Math.floor(diffDays/PERIOD_DAYS);
+  const start = new Date(ANCHOR.getTime() + periodIndex*PERIOD_DAYS*86400000);
+  return dstr(start);
+}
+
+function rateFor(typeKey){
+  const m = settings.multipliers[typeKey];
+  return settings.baseRate * m;
+}
+
+function computeHours(start,end,breakMin){
+  if(!start||!end) return 0;
+  const [sh,sm] = start.split(':').map(Number);
+  const [eh,em] = end.split(':').map(Number);
+  let mins = (eh*60+em)-(sh*60+sm);
+  if(mins < 0) mins += 24*60;
+  mins -= (Number(breakMin)||0);
+  return Math.max(mins,0)/60;
+}
+
+function togglePanel(id){
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+function populateTypeSelect(){
+  const sel = document.getElementById('fType');
+  sel.innerHTML = SHIFT_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');
+}
+
+function populateRateGrid(){
+  const grid = document.getElementById('rateGrid');
+  let html = `<div class="rhead">Shift type</div><div class="rhead" style="text-align:center;">×</div><div class="rhead" style="text-align:right;">Rate/hr</div>`;
+  SHIFT_TYPES.forEach(t=>{
+    html += `<div class="rname">${t.label}</div>
+      <div><input type="number" step="0.001" value="${settings.multipliers[t.key]}" onchange="onMultChange('${t.key}',this.value)"></div>
+      <div class="rrate mono" id="rate_${t.key}">${fmtMoney(rateFor(t.key))}</div>`;
+  });
+  grid.innerHTML = html;
+}
+
+function refreshRateDisplay(){
+  SHIFT_TYPES.forEach(t=>{
+    const el = document.getElementById('rate_'+t.key);
+    if(el) el.textContent = fmtMoney(rateFor(t.key));
+  });
+}
+
+async function saveSettings(){
+  try{
+    await window.storage.set('settings', JSON.stringify(settings));
+  }catch(e){ console.error('save settings failed', e); }
+}
+async function saveShifts(){
+  try{
+    await window.storage.set('shifts', JSON.stringify(shifts));
+    document.getElementById('saveStatus').textContent = 'Saved · ' + shifts.length + ' shift' + (shifts.length===1?'':'s') + ' logged';
+  }catch(e){
+    document.getElementById('saveStatus').textContent = 'Could not save — changes may not persist.';
+    console.error('save shifts failed', e);
+  }
+}
+
+function onMultChange(key,val){
+  settings.multipliers[key] = parseFloat(val)||0;
+  refreshRateDisplay();
+  saveSettings();
+  renderAll();
+}
+function onBaseRateChange(){
+  settings.baseRate = parseFloat(document.getElementById('baseRate').value)||0;
+  refreshRateDisplay();
+  saveSettings();
+  renderAll();
+}
+function onSuperRateChange(){
+  settings.superRate = parseFloat(document.getElementById('superRate').value)||0;
+  saveSettings();
+  renderAll();
+}
+
+function addShift(){
+  const date = document.getElementById('fDate').value;
+  const start = document.getElementById('fStart').value;
+  const end = document.getElementById('fEnd').value;
+  const brk = document.getElementById('fBreak').value;
+  const type = document.getElementById('fType').value;
+  const note = document.getElementById('fNote').value;
+  if(!date){ alert('Pick a date for the shift.'); return; }
+  const hours = computeHours(start,end,brk);
+  shifts.push({ id: Date.now()+Math.random().toString(16).slice(2), date, start, end, breakMin:Number(brk)||0, type, note, hours });
+  shifts.sort((a,b)=> a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+  saveShifts();
+  renderAll();
+  document.getElementById('fNote').value='';
+}
+
+function deleteShift(id){
+  shifts = shifts.filter(s=>s.id!==id);
+  saveShifts();
+  renderAll();
+}
+
+function typeLabel(key){
+  const t = SHIFT_TYPES.find(t=>t.key===key);
+  return t ? t.label : key;
+}
+
+function renderTable(){
+  const body = document.getElementById('shiftTableBody');
+  if(shifts.length===0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="8">No shifts logged yet — add your first shift above.</td></tr>`;
+    return;
+  }
+  const todayStr = dstr(new Date());
+  body.innerHTML = shifts.map(s=>{
+    const rate = rateFor(s.type);
+    const pay = rate * s.hours;
+    const dayName = new Date(s.date+'T00:00:00Z').toLocaleDateString('en-AU',{weekday:'short',timeZone:'UTC'});
+    return `<tr class="${s.date===todayStr?'today':''}">
+      <td>${new Date(s.date+'T00:00:00Z').toLocaleDateString('en-AU',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'})}</td>
+      <td>${dayName}</td>
+      <td class="mono">${s.start}–${s.end}${s.breakMin?` <span style="color:var(--muted)">(-${s.breakMin}m)</span>`:''}</td>
+      <td class="mono">${fmtHrs(s.hours)}</td>
+      <td><span class="type-pill">${typeLabel(s.type)}</span></td>
+      <td class="mono">${fmtMoney(rate)}</td>
+      <td class="mono">${fmtMoney(pay)}</td>
+      <td><button class="del-btn" title="Delete" onclick="deleteShift('${s.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function allPeriods(){
+  const set = new Set(shifts.map(s=>periodStartFor(new Date(s.date+'T00:00:00Z'))));
+  set.add(periodStartFor(new Date()));
+  return Array.from(set).sort().reverse();
+}
+
+function periodLabel(startStr){
+  const start = new Date(startStr+'T00:00:00Z');
+  const end = new Date(start.getTime()+13*86400000);
+  const fmt = d=>d.toLocaleDateString('en-AU',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'});
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
+function populatePeriodSelect(){
+  const sel = document.getElementById('periodSelect');
+  const current = sel.value;
+  const periods = allPeriods();
+  sel.innerHTML = periods.map(p=>`<option value="${p}">${periodLabel(p)}</option>`).join('');
+  if(periods.includes(current)) sel.value = current;
+}
+
+function shiftsInPeriod(periodStart){
+  return shifts.filter(s=> periodStartFor(new Date(s.date+'T00:00:00Z')) === periodStart);
+}
+
+function renderBreakdown(){
+  const sel = document.getElementById('periodSelect');
+  const periodStart = sel.value || allPeriods()[0];
+  const inPeriod = shiftsInPeriod(periodStart);
+
+  let totalHours = 0, gross = 0;
+  const byType = {};
+  SHIFT_TYPES.forEach(t=> byType[t.key] = {hours:0,pay:0});
+  inPeriod.forEach(s=>{
+    const rate = rateFor(s.type);
+    const pay = rate*s.hours;
+    byType[s.type].hours += s.hours;
+    byType[s.type].pay += pay;
+    totalHours += s.hours;
+    gross += pay;
+  });
+
+  const list = document.getElementById('breakdownList');
+  let html = '';
+  SHIFT_TYPES.forEach(t=>{
+    if(byType[t.key].hours>0){
+      html += `<div class="breakdown-row"><span>${t.label} <span class="mono" style="color:var(--muted);">(${fmtHrs(byType[t.key].hours)} hrs)</span></span><span class="amt">${fmtMoney(byType[t.key].pay)}</span></div>`;
+    }
+  });
+  if(html==='') html = `<div class="breakdown-row"><span style="color:var(--muted);font-style:italic;">No shifts logged in this period.</span></div>`;
+  html += `<div class="breakdown-row total"><span>Gross pay (${fmtHrs(totalHours)} hrs)</span><span class="amt">${fmtMoney(gross)}</span></div>`;
+  list.innerHTML = html;
+
+  const taxInput = document.getElementById('taxInput');
+  taxInput.value = settings.taxByPeriod[periodStart] ?? 0;
+  const tax = parseFloat(taxInput.value)||0;
+  const net = gross - tax;
+  document.getElementById('netAmt').textContent = fmtMoney(net);
+
+  const superAmt = gross * settings.superRate;
+  document.getElementById('statSuper').textContent = fmtMoney(superAmt);
+  document.getElementById('statHours').textContent = fmtHrs(totalHours);
+  document.getElementById('statGross').textContent = fmtMoney(gross);
+  document.getElementById('statNet').textContent = fmtMoney(net);
+}
+
+function saveTaxAndRender(){
+  const sel = document.getElementById('periodSelect');
+  const periodStart = sel.value;
+  settings.taxByPeriod[periodStart] = parseFloat(document.getElementById('taxInput').value)||0;
+  saveSettings();
+  renderBreakdown();
+}
+
+function renderAll(){
+  renderTable();
+  populatePeriodSelect();
+  renderBreakdown();
+}
+
+function updateLivePreview(){
+  const start = document.getElementById('fStart').value;
+  const end = document.getElementById('fEnd').value;
+  const brk = document.getElementById('fBreak').value;
+  const type = document.getElementById('fType').value;
+  const hrs = computeHours(start,end,brk);
+  const pay = rateFor(type)*hrs;
+  document.getElementById('livePreview').textContent = hrs>0 ? `= ${fmtHrs(hrs)} hrs → ${fmtMoney(pay)}` : '';
+}
+['fStart','fEnd','fBreak','fType'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateLivePreview);
+  document.getElementById(id).addEventListener('change', updateLivePreview);
+});
+
+async function init(){
+  document.getElementById('fDate').value = dstr(new Date());
+  populateTypeSelect();
+
+  const defaultMultipliers = {};
+  SHIFT_TYPES.forEach(t=> defaultMultipliers[t.key]=t.mult);
+  settings.multipliers = defaultMultipliers;
+
+  try{
+    const savedSettings = await window.storage.get('settings');
+    if(savedSettings && savedSettings.value){
+      const parsed = JSON.parse(savedSettings.value);
+      settings = { ...settings, ...parsed, multipliers: { ...defaultMultipliers, ...(parsed.multipliers||{}) } };
+    }
+  }catch(e){ /* no settings saved yet */ }
+
+  try{
+    const savedShifts = await window.storage.get('shifts');
+    if(savedShifts && savedShifts.value){
+      shifts = JSON.parse(savedShifts.value);
+    }
+  }catch(e){ /* no shifts saved yet */ }
+
+  document.getElementById('baseRate').value = settings.baseRate;
+  document.getElementById('superRate').value = settings.superRate;
+  populateRateGrid();
+  renderAll();
+  updateLivePreview();
+  document.getElementById('saveStatus').textContent = shifts.length
+    ? `${shifts.length} shift${shifts.length===1?'':'s'} loaded from your saved data.`
+    : 'No saved shifts yet — add your first one above.';
+}
+init();
+</script>
+</body>
+</html>
